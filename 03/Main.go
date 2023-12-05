@@ -38,16 +38,46 @@ func runPartOne(rawLines []string) int {
 		for _, ind := range inds {
 			//fmt.Printf("%d %s, ", readNumber(line, ind), checkSymbols(grid, ind, i))
 			if checkSymbols(grid, ind) {
-				res += readNumber(line, ind)
+				res += ind.value
 				// fmt.Printf("%d ", readNumber(line, ind))
 			}
 		}
-		println()
+		// println()
 	}
 	return res
 }
 
 func runPartTwo(rawLines []string) int {
+	grid := parseLines(rawLines)
+	var numbers []Indices
+	for i, line := range rawLines {
+		numbers = append(numbers, findNumberIndices(line, i)...)
+	}
+
+	res := 0
+	for i, gridline := range grid {
+		for j, r := range gridline {
+			if dot, _ := utf8.DecodeRuneInString("*"); r == dot {
+				res += findAdjecentNumbers(numbers, i, j)
+			}
+		}
+	}
+	return res
+}
+
+func findAdjecentNumbers(numbers []Indices, i int, j int) int {
+	vals := make([]Indices, 0)
+	for _, num := range numbers {
+		if (num.line-1 <= i && i <= num.line+1) && (num.start-1 <= j && j <= num.end) {
+			vals = append(vals, num)
+		}
+	}
+
+	if len(vals) == 2 {
+		res := vals[0].value * vals[1].value
+		return res
+	}
+	fmt.Println()
 	return 0
 }
 
@@ -64,8 +94,8 @@ func parseLines(rawLines []string) [][]rune {
 	return grid
 }
 
-func readNumber(line string, ind Indices) int {
-	v, _ := strconv.Atoi(line[ind.start:ind.end])
+func readNumber(line string, start int, end int) int {
+	v, _ := strconv.Atoi(line[start:end])
 	return v
 }
 
@@ -105,7 +135,7 @@ func checkSymbols(grid [][]rune, ind Indices) bool {
 }
 
 type Indices struct {
-	start, end, line int
+	start, end, line, value int
 }
 
 func findNumberIndices(line string, lineIndex int) []Indices {
@@ -120,7 +150,7 @@ func findNumberIndices(line string, lineIndex int) []Indices {
 
 		} else {
 			if curStart >= 0 {
-				numbers = append(numbers, Indices{curStart, i, lineIndex})
+				numbers = append(numbers, Indices{curStart, i, lineIndex, readNumber(line, curStart, i)})
 				curStart = -1
 			}
 		}
