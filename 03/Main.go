@@ -34,12 +34,12 @@ func runPartOne(rawLines []string) int {
 	grid := parseLines(rawLines)
 	res := 0
 	for i, line := range rawLines {
-		inds := findNumberIndices(line)
+		inds := findNumberIndices(line, i)
 		for _, ind := range inds {
 			//fmt.Printf("%d %s, ", readNumber(line, ind), checkSymbols(grid, ind, i))
-			if checkSymbols(grid, ind, i) {
+			if checkSymbols(grid, ind) {
 				res += readNumber(line, ind)
-				fmt.Printf("%d ", readNumber(line, ind))
+				// fmt.Printf("%d ", readNumber(line, ind))
 			}
 		}
 		println()
@@ -52,14 +52,15 @@ func runPartTwo(rawLines []string) int {
 }
 
 func parseLines(rawLines []string) [][]rune {
-	grid := make([][]rune, len(rawLines))
+	grid := make([][]rune, len(rawLines)+1)
 	for i, line := range rawLines {
-		gridLine := make([]rune, len(line))
+		gridLine := make([]rune, len(line)+1)
 		for j, char := range line {
 			gridLine[j] = char
 		}
 		grid[i] = gridLine
 	}
+	grid[len(rawLines)] = make([]rune, len(rawLines[0])+1)
 	return grid
 }
 
@@ -71,48 +72,46 @@ func readNumber(line string, ind Indices) int {
 func validSymbol(r rune) bool {
 	dot, _ := utf8.DecodeRuneInString(".")
 	//return !unicode.IsNumber(r) && r != dot
-	return r != dot
+	var defaultRune rune
+	return r != dot && !unicode.IsNumber(r) && r != defaultRune
 }
 
-func checkSymbols(grid [][]rune, ind Indices, lineIndex int) bool {
-	maxIndex := len(grid[lineIndex])
+func checkSymbols(grid [][]rune, ind Indices) bool {
 	// Check line above and below
-	for i := max(0, ind.start-1); i < min(maxIndex, ind.end+1); i++ {
-		if lineIndex-1 >= 0 {
-			if validSymbol(grid[lineIndex-1][i]) {
-				return true
-			}
-		}
-		if lineIndex+1 < maxIndex {
-			if validSymbol(grid[lineIndex+1][i]) {
-				return true
-			}
-
-		}
+	var symbols []rune
+	startIndex := max(0, ind.start-1)
+	if ind.line > 0 {
+		symbols = append(symbols, grid[ind.line-1][startIndex:ind.end+1]...)
 	}
+	symbols = append(symbols, grid[ind.line+1][startIndex:ind.end+1]...)
 
-	if ind.start-1 >= 0 {
-		if validSymbol(grid[lineIndex][ind.start-1]) {
-			return true
-		}
-	}
-	if ind.end < maxIndex {
-		if validSymbol(grid[lineIndex][ind.end]) {
+	symbols = append(symbols, grid[ind.line][startIndex])
+	symbols = append(symbols, grid[ind.line][ind.end])
+
+	// fmt.Printf("For (%d, %d:%d): ", ind.line, ind.start, ind.end)
+	// for _, r := range symbols {
+	// 	fmt.Print(string(r))
+	// }
+
+	for _, r := range symbols {
+		if validSymbol(r) {
+			// fmt.Println(" Has Symbol!")
 			return true
 		}
 
 	}
-
+	// fmt.Println()
 	return false
 }
 
 type Indices struct {
-	start, end int
+	start, end, line int
 }
 
-func findNumberIndices(line string) []Indices {
+func findNumberIndices(line string, lineIndex int) []Indices {
 	curStart := -1
 	numbers := make([]Indices, 0)
+	line = line + "."
 	for i, r := range line {
 		if unicode.IsDigit(r) {
 			if curStart < 0 {
@@ -121,10 +120,11 @@ func findNumberIndices(line string) []Indices {
 
 		} else {
 			if curStart >= 0 {
-				numbers = append(numbers, Indices{curStart, i})
+				numbers = append(numbers, Indices{curStart, i, lineIndex})
 				curStart = -1
 			}
 		}
 	}
+
 	return numbers
 }
